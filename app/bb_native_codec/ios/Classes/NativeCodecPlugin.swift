@@ -95,7 +95,7 @@ public class NativeCodecPlugin: NSObject, FlutterPlugin {
       throw CodecError.bad("jpeg dest")
     }
     let q = max(0.0, min(1.0, Double(quality) / 100.0))
-    CGImageDestinationAddImage(image, image, [kCGImageDestinationLossyCompressionQuality: q] as CFDictionary)
+    CGImageDestinationAddImage(dest, image, [kCGImageDestinationLossyCompressionQuality: q] as CFDictionary)
     guard CGImageDestinationFinalize(dest) else { throw CodecError.bad("jpeg finalize") }
     return out as Data
   }
