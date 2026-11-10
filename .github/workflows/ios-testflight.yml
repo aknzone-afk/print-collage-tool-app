@@ -128,3 +128,4 @@ jobs:
             app/ios/fastlane/report.xml
             app/ios/fastlane/*.log
           if-no-files-found: ignore
+# registered
