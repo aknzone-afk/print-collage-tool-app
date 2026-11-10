@@ -1,0 +1,15 @@
+.dart_tool/
+.packages
+build/
+*.iml
+.flutter-plugins
+.flutter-plugins-dependencies
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/ephemeral/
+ios/Runner/GeneratedPluginRegistrant.*
+**/xcuserdata/
+android/.gradle/
+android/key.properties
+**/*.keystore
+android/app/src/main/assets/gdrive_service_account.json

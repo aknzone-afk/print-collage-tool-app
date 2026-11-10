@@ -1,0 +1,38 @@
+name: print_collage_tool
+description: "Internal print-shop collage tool: arranges 6x9 designs into 12x18 sheets and emails them."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  image: ^4.5.0
+  http: ^1.2.2
+  shared_preferences: ^2.3.2
+  flutter_appauth: ^6.0.6
+  flutter_secure_storage: ^9.2.2
+  path_provider: ^2.1.4
+  mime: ^1.0.6
+  flutter_email_sender: ^6.0.3
+  archive: ^4.0.0
+  flutter_foreground_task: ^8.10.0
+  flutter_ringtone_player: ^4.0.0+3
+  flutter_volume_controller: ^1.3.3
+  googleapis_auth: ^2.0.0
+  bb_native_codec:
+    path: bb_native_codec
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/gdrive_service_account.json
