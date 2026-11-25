@@ -1,7 +1,7 @@
 name: print_collage_tool
 description: "Internal print-shop collage tool: arranges 6x9 designs into 12x18 sheets and emails them."
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ^3.11.5
