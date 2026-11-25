@@ -76,6 +76,40 @@ void orderRenderTaskEntryPoint() {
   FlutterForegroundTask.setTaskHandler(BackgroundTaskHandler());
 }
 
+/// iOS entry into the render pipeline.
+///
+/// Android runs the download → render → zip → upload pipeline inside a
+/// persistent foreground-service isolate. iOS has no equivalent, so the
+/// render would otherwise never run (the symptom: "doesn't generate the
+/// collage"). On iOS the preview screen calls this instead — it runs the
+/// EXACT same [BackgroundTaskHandler] pipeline in-process (the heavy
+/// per-sheet encode still offloads to `Isolate.run` inside the pipeline,
+/// so the UI stays responsive). [onEvent] receives the identical progress /
+/// `complete` / `error` maps the service would have sent, so the UI handling
+/// is unchanged. The pending order must already be written to
+/// SharedPreferences (the UI does this before calling), exactly as on Android.
+Future<void> runOrderRenderInline({
+  required void Function(Map<String, dynamic> data) onEvent,
+}) async {
+  final handler = BackgroundTaskHandler();
+  handler.inlineEmit = onEvent;
+  // Native codec (Swift) with the pure-Dart fallback baked into collage.dart,
+  // so a codec hiccup slows the render but never stops it.
+  try {
+    installNativeCodecHooks();
+  } catch (_) {/* pure-Dart fallback still renders */}
+  try {
+    await handler._runPipeline();
+  } catch (e, st) {
+    // Surface the real failure on-screen instead of a silent dead render.
+    try {
+      await handler._sendError('$e\n$st');
+    } catch (_) {
+      onEvent({'phase': 'error', 'message': '$e'});
+    }
+  }
+}
+
 /// Unified background task handler:
 ///
 /// * Periodically (every onRepeatEvent tick) refreshes the OneDrive design
@@ -93,6 +127,15 @@ class BackgroundTaskHandler extends TaskHandler {
   bool _cancelRequested = false;
   int? _lastSyncHour;
   DateTime? _lastSyncDay;
+
+  /// When non-null, the handler is running IN-PROCESS instead of inside the
+  /// Android foreground service. iOS has no Android-style persistent
+  /// foreground service, so there the UI runs this same pipeline directly
+  /// (see [runOrderRenderInline]). In that mode every progress / `complete`
+  /// / `error` event goes straight to this callback instead of through
+  /// FlutterForegroundTask, and notification updates are skipped. It stays
+  /// null on Android, so the Android code path is completely unchanged.
+  void Function(Map<String, dynamic> data)? inlineEmit;
 
   /// Abort the pipeline at the next loop boundary after the user cancels.
   void _checkCancelled() {
@@ -888,6 +931,8 @@ class BackgroundTaskHandler extends TaskHandler {
   }
 
   void _updateNotif(String title, String text) {
+    // iOS inline mode: no foreground service, so nothing to update.
+    if (inlineEmit != null) return;
     FlutterForegroundTask.updateService(
       notificationTitle: title,
       notificationText: text,
@@ -895,7 +940,12 @@ class BackgroundTaskHandler extends TaskHandler {
   }
 
   void _send(Map<String, dynamic> data) {
-    FlutterForegroundTask.sendDataToMain(data);
+    final emit = inlineEmit;
+    if (emit != null) {
+      emit(data); // iOS inline mode → straight to the UI.
+    } else {
+      FlutterForegroundTask.sendDataToMain(data);
+    }
   }
 
   Future<void> _sendError(String message) async {
