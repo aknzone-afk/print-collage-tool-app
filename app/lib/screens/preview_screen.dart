@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -197,6 +198,21 @@ class _PreviewScreenState extends State<PreviewScreen> {
       OrderRenderConstants.activeOrderResultPrefKey,
       jsonEncode(_packingResultToJson(widget.result)),
     );
+
+    // iOS has no Android-style persistent foreground service, so the
+    // background render isolate never runs there and the collage was never
+    // generated. Run the SAME pipeline in-process instead; its progress /
+    // complete / error events drive this screen exactly as the service would.
+    if (Platform.isIOS) {
+      unawaited(runOrderRenderInline(onEvent: _onTaskData));
+      if (mounted) {
+        setState(() {
+          _statusLabel = 'Loading designs from OneDrive…';
+          _phaseStartTime = DateTime.now();
+        });
+      }
+      return;
+    }
 
     // The persistent background service is normally already running
     // (main() ensures it on every launch). If it isn't, start it — and
